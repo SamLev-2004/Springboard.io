@@ -1,33 +1,53 @@
-import { streamText } from "ai";
+import { streamText, convertToModelMessages } from "ai";
 import { google } from "@ai-sdk/google";
 import { findRelevantKnowledge } from "@/lib/ai/companyKnowledge";
 
 export const maxDuration = 30;
 
+// Extract text from a UIMessage or CoreMessage
+function extractText(msg: any): string {
+  if (typeof msg.content === "string") return msg.content;
+  if (Array.isArray(msg.parts)) {
+    return msg.parts
+      .filter((p: any) => p.type === "text")
+      .map((p: any) => p.text ?? "")
+      .join("");
+  }
+  if (Array.isArray(msg.content)) {
+    return msg.content
+      .filter((p: any) => p.type === "text")
+      .map((p: any) => p.text ?? "")
+      .join("");
+  }
+  return "";
+}
+
 export async function POST(req: Request) {
-  let messages: any[];
+  let uiMessages: any[];
   try {
     const body = await req.json();
-    messages = body.messages ?? [];
+    uiMessages = body.messages ?? [];
   } catch {
     return new Response("Invalid request body", { status: 400 });
   }
 
-  // Extract user text from either content or parts (Vercel AI SDK v5 compat)
-  const lastUserMessage = messages.filter((m: any) => m.role === "user").pop();
-  let userText = "";
-  if (lastUserMessage) {
-    if (typeof lastUserMessage.content === "string") {
-      userText = lastUserMessage.content;
-    } else if (Array.isArray(lastUserMessage.parts)) {
-      userText = lastUserMessage.parts
-        .filter((p: any) => p.type === "text")
-        .map((p: any) => p.text)
-        .join("");
-    }
-  }
+  const lastUserMessage = uiMessages.filter((m: any) => m.role === "user").pop();
+  const userText = lastUserMessage ? extractText(lastUserMessage) : "";
 
   const ragContext = userText ? findRelevantKnowledge(userText) : null;
+
+  // Convert UIMessages → ModelMessages that streamText understands
+  // UIMessages (from useChat) have parts[] instead of content string
+  let modelMessages: any[];
+  try {
+    modelMessages = await convertToModelMessages(uiMessages);
+  } catch {
+    // Fallback: manually map to CoreMessage format
+    modelMessages = uiMessages
+      .filter((m: any) => m.role === "user" || m.role === "assistant")
+      .map((m: any) => ({ role: m.role, content: extractText(m) }))
+      .filter((m: any) => m.content.length > 0);
+  }
 
   const systemPrompt = `You are Springboard.io's friendly onboarding assistant. You help new employees get settled in on their first day.
 
@@ -67,7 +87,7 @@ Remember: you're talking to a brand new employee who might be nervous. Be encour
   const result = streamText({
     model: google("gemini-2.5-flash"),
     system: systemPrompt,
-    messages,
+    messages: modelMessages,
   });
 
   return result.toTextStreamResponse();
