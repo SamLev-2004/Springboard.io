@@ -2,7 +2,18 @@
 
 **AI-Powered Agentic Onboarding** — From Offer to Productive in Minutes.
 
-Springboard.io bridges the chaotic gap between a signed offer and a productive Day 1 using AI agents, smart buddy matching, and human-in-the-loop oversight.
+Springboard.io bridges the chaotic gap between a signed offer and a productive Day 1 using AI agents, smart buddy matching, and human-in-the-loop oversight. We've built an end-to-end platform where HR and managers can orchestrate onboarding with a single click, while new hires get a fully provisioned, interactive, and AI-guided Day 1 experience.
+
+### The manual way vs. Springboard
+
+| ❌ BEFORE | ✅ AFTER |
+| :--- | :--- |
+| • HR sends 6 emails to coordinate day 1 | • HR creates profile in **30 seconds** |
+| • New hire waits 2-4 hrs for Slack answers | • New hire gets answers in **~3 seconds** |
+| • Manager interrupted 8x per week | • Manager gets 2 Slack nudges/week only |
+| • Same questions answered 200+ times | • AI answers every repeat question instantly |
+| • Zero visibility — HR flies blind | • Live dashboard — completion, flags, pulse |
+| • No audit trail for compliance | • Every step timestamped for audit |
 
 > **Hackathon Judges:** The fastest way to see this in action is the [live demo](#live-demo) link below. No setup required!
 
