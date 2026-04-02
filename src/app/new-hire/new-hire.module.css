@@ -692,3 +692,301 @@
   padding: 6px 12px;
   margin-top: 4px;
 }
+
+/* ── Task Active State ── */
+.taskActive {
+  border-color: rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.06);
+}
+
+.taskMain {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+}
+
+.startBtn {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  border: none;
+  border-radius: 8px;
+  padding: 6px 18px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.startBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(139, 92, 246, 0.4);
+}
+
+.inProgressBadge {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.completeBtn {
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.15s, box-shadow 0.15s;
+  margin-top: 8px;
+}
+
+.completeBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
+}
+
+.completeBtn:disabled {
+  cursor: not-allowed;
+}
+
+/* ── Inline Task Expansion ── */
+.taskExpanded {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--panel-border);
+  animation: slideDown 0.25s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 500px; }
+}
+
+.miniForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.miniFormHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.uploadArea {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px dashed var(--panel-border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.uploadPlaceholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* ── NDA / Mock Document ── */
+.mockDoc {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mockDocHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--panel-border);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.mockDocBody {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--panel-border);
+  padding: 20px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  line-height: 1.8;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mockDocBody p strong {
+  color: var(--text-main);
+}
+
+.mockDocFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--panel-border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.scrollHint {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+/* ── Swag Picker ── */
+.swagPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.swagGroup {}
+
+.swagLabel {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.swagOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swagOption {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--panel-border);
+  color: var(--text-main);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.swagOption:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.swagSelected {
+  background: rgba(139, 92, 246, 0.2) !important;
+  border-color: var(--accent-primary) !important;
+  color: #fff;
+}
+
+/* ── Profile Upload ── */
+.profileUpload {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.profileAvatarLarge {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.profileUploadControls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profileInitialInput {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--panel-border);
+  color: var(--text-main);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: inherit;
+  width: 72px;
+  text-align: center;
+  outline: none;
+  text-transform: uppercase;
+}
+
+.profileInitialInput:focus {
+  border-color: var(--accent-primary);
+}
+
+.profileUploadFake {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--panel-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  cursor: default;
+}
+
+/* ── Training Panel ── */
+.trainingPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trainingVideo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.trainingVideo:hover {
+  background: rgba(255, 255, 255, 0.04);
+}

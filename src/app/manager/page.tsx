@@ -42,6 +42,11 @@ export default function ManagerDashboard() {
   const [addingTask, setAddingTask] = useState(false);
   const [newTask, setNewTask] = useState({ title: "", description: "", type: "email" as AgenticTask["type"] });
   const [customDocs, setCustomDocs] = useState<CustomDoc[]>([]);
+  const [agentRunning, setAgentRunning] = useState(false);
+  const [executingTaskIndex, setExecutingTaskIndex] = useState(-1);
+  const [executionLog, setExecutionLog] = useState<string[]>([]);
+  const [agentsDone, setAgentsDone] = useState(false);
+  const [dispatchPayload, setDispatchPayload] = useState("");
 
   // Derived data for the overview panel
   const selectedEmployee = useMemo(
@@ -100,12 +105,72 @@ export default function ManagerDashboard() {
   };
 
   const handleDispatch = () => {
+    if (!plan) return;
     const planWithDocs = { ...plan, customDocs: customDocs.map((d) => ({ ...d, type: d.url?.endsWith(".pdf") ? "pdf" : "link" })) };
-    const payload = btoa(JSON.stringify({ plan: planWithDocs, employee, customDocs }));
+    const jsonStr = JSON.stringify({ plan: planWithDocs, employee, customDocs });
+    // Unicode-safe base64 encoding (btoa can't handle emojis/non-Latin1)
+    const payload = btoa(unescape(encodeURIComponent(jsonStr)));
+    setDispatchPayload(payload);
     setDispatched(true);
-    setTimeout(() => {
-      router.push(`/new-hire?plan=${encodeURIComponent(payload)}`);
-    }, 1200);
+    setAgentRunning(true);
+    setExecutionLog(["Initializing agentic pipeline..."]);
+    setExecutingTaskIndex(0);
+
+    // Simulate each task completing sequentially
+    const tasks = plan.agenticTasks;
+    let idx = 0;
+
+    const runNextTask = () => {
+      if (idx >= tasks.length) {
+        setTimeout(() => {
+          setExecutionLog((prev) => [...prev, "🎉 All agents completed successfully!"]);
+          setAgentRunning(false);
+          setAgentsDone(true);
+          // Mark all tasks as completed in the plan
+          setPlan((prev) => prev && {
+            ...prev,
+            agenticTasks: prev.agenticTasks.map((t) => ({ ...t, status: "completed" as const })),
+          });
+        }, 600);
+        return;
+      }
+
+      const task = tasks[idx];
+      const currentIdx = idx;
+
+      // "Running" log
+      setTimeout(() => {
+        setExecutingTaskIndex(currentIdx);
+        setExecutionLog((prev) => [...prev, `⚡ Agent executing: ${task.title}...`]);
+      }, 0);
+
+      // "Detail" log
+      setTimeout(() => {
+        setExecutionLog((prev) => [...prev, `   → ${task.description}`]);
+      }, 800);
+
+      // "Done" log + mark complete
+      setTimeout(() => {
+        setExecutionLog((prev) => [...prev, `✓ ${task.title} — completed`]);
+        setPlan((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            agenticTasks: prev.agenticTasks.map((t, i) =>
+              i === currentIdx ? { ...t, status: "completed" as const } : t
+            ),
+          };
+        });
+        idx++;
+        runNextTask();
+      }, 1600);
+    };
+
+    setTimeout(() => runNextTask(), 800);
+  };
+
+  const handleGoToPortal = () => {
+    router.push(`/new-hire?plan=${encodeURIComponent(dispatchPayload)}`);
   };
 
   // Plan field updaters
@@ -458,10 +523,33 @@ export default function ManagerDashboard() {
             </div>
 
             <div className={styles.hilApprove}>
-              <button className="btn" onClick={handleDispatch} disabled={dispatched || plan.agenticTasks.length === 0}>
-                {dispatched ? "Dispatching Agents..." : "Approve & Dispatch Agents \uD83D\uDE80"}
-              </button>
+              {!dispatched && (
+                <button className="btn" onClick={handleDispatch} disabled={plan.agenticTasks.length === 0}>
+                  Approve &amp; Dispatch Agents {"\uD83D\uDE80"}
+                </button>
+              )}
+              {agentsDone && (
+                <button className="btn" onClick={handleGoToPortal} style={{ background: "var(--accent-success)" }}>
+                  View New Hire Portal {"\u2192"}
+                </button>
+              )}
             </div>
+
+            {/* Agent Execution Terminal */}
+            {dispatched && executionLog.length > 0 && (
+              <div className={styles.executionTerminal}>
+                <div className={styles.terminalHeader}>
+                  <span className={styles.terminalDot} style={{ background: agentRunning ? "#f59e0b" : "#10b981" }} />
+                  <span>{agentRunning ? "Agents Running..." : "All Agents Complete"}</span>
+                </div>
+                <div className={styles.terminalBody}>
+                  {executionLog.map((line, i) => (
+                    <div key={i} className={styles.terminalLine}>{line}</div>
+                  ))}
+                  {agentRunning && <div className={styles.terminalCursor}>_</div>}
+                </div>
+              </div>
+            )}
 
             {/* Manager Nudge Preview (ported from Greg's BoardingPass) */}
             {dispatched && (

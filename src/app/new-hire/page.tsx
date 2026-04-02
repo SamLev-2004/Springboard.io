@@ -101,7 +101,7 @@ function NewHireContent() {
     const encoded = searchParams.get("plan");
     if (encoded) {
       try {
-        const decoded = JSON.parse(atob(decodeURIComponent(encoded)));
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(encoded)))));
         if (decoded.plan) {
           const incoming = decoded.plan;
           setPlan({
@@ -165,10 +165,18 @@ function NewHireContent() {
     sendMessage({ text });
   };
 
-  const handleStartTask = (taskId: string, title: string) => {
-    setChatOpen(true);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [swagSelections, setSwagSelections] = useState<{ laptop: string; size: string }>({ laptop: "", size: "" });
+  const [ndaScrolled, setNdaScrolled] = useState(false);
+  const [profileInitials, setProfileInitials] = useState(employeeName.charAt(0).toUpperCase());
+
+  const handleStartTask = (taskId: string) => {
+    setActiveTaskId((prev) => (prev === taskId ? null : taskId));
+  };
+
+  const handleCompleteTask = (taskId: string) => {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: "completed" } : t));
-    sendMessage({ text: `I am ready to complete my task: ${title}. Can you help me?` });
+    setActiveTaskId(null);
   };
 
   // Pulse check-in state (ported from Greg's BoardingPass)
@@ -277,40 +285,170 @@ function NewHireContent() {
           </h2>
         </div>
         <div className={styles.taskList}>
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              className={`${styles.taskRow} ${
-                task.status === "completed" ? styles.completed : ""
-              }`}
-            >
-              <div className={styles.taskIcon}>
-                {TASK_ICONS[task.type] || "🔹"}
-              </div>
-              <div className={styles.taskBody}>
-                <div className={styles.taskTitle}>{task.title}</div>
-                <div className={styles.taskDesc}>{task.description}</div>
-              </div>
-              <div className={styles.taskStatus}>
-                {task.status === "pending" ? (
-                  <button 
-                    className={styles.chatSend} 
-                    style={{ padding: "0.25rem 0.75rem", fontSize: "0.85rem", margin: 0 }}
-                    onClick={() => handleStartTask(task.id, task.title)}
-                  >
-                    Start
-                  </button>
-                ) : (
-                  <>
-                    <div className={styles.checkmark}>{"✓"}</div>
-                    <span className={`${styles.statusText} ${styles.completed}`}>
-                      Done
-                    </span>
-                  </>
+          {tasks.map((task) => {
+            const isActive = activeTaskId === task.id;
+            return (
+              <div key={task.id}>
+                <div className={`${styles.taskRow} ${task.status === "completed" ? styles.completed : ""} ${isActive ? styles.active : ""}`}>
+                  <div className={styles.taskIcon}>{TASK_ICONS[task.type] || "🔹"}</div>
+                  <div className={styles.taskBody}>
+                    <div className={styles.taskTitle}>{task.title}</div>
+                    <div className={styles.taskDesc}>{task.description}</div>
+                  </div>
+                  <div className={styles.taskStatus}>
+                    {task.status === "pending" ? (
+                      <button
+                        className={styles.chatSend}
+                        style={{ padding: "0.25rem 0.75rem", fontSize: "0.85rem", margin: 0 }}
+                        onClick={() => handleStartTask(task.id)}
+                      >
+                        {isActive ? "Close" : "Start"}
+                      </button>
+                    ) : (
+                      <>
+                        <div className={styles.checkmark}>{"\u2713"}</div>
+                        <span className={`${styles.statusText} ${styles.completed}`}>Done</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Inline task panel */}
+                {isActive && task.status === "pending" && (
+                  <div className={styles.taskExpanded}>
+                    {/* Document / NDA */}
+                    {task.type === "document" && (
+                      <div className={styles.miniForm}>
+                        <div className={styles.miniFormHeader}>
+                          <span>{"\uD83D\uDCC4"}</span>
+                          <strong>Non-Disclosure Agreement — Springboard.io</strong>
+                        </div>
+                        <div
+                          className={styles.mockDocBody}
+                          onScroll={(e) => {
+                            const el = e.currentTarget;
+                            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) setNdaScrolled(true);
+                          }}
+                        >
+                          <p><strong>CONFIDENTIALITY AND NON-DISCLOSURE AGREEMENT</strong></p>
+                          <p>This Agreement is entered into as of the employee&apos;s start date between <strong>Springboard.io Inc.</strong> (&quot;Company&quot;) and the undersigned employee.</p>
+                          <p><strong>1. Confidential Information.</strong> Employee agrees to hold in strict confidence all non-public information relating to Company products, customers, financials, source code, business strategies, and personnel matters.</p>
+                          <p><strong>2. Non-Disclosure.</strong> Employee shall not disclose Confidential Information to any third party without prior written consent from the Company, except as required by law.</p>
+                          <p><strong>3. Return of Materials.</strong> Upon termination, Employee shall promptly return all Company materials and delete any copies of Confidential Information in their possession.</p>
+                          <p><strong>4. Term.</strong> Obligations under this Agreement survive for two (2) years following termination of employment.</p>
+                          <p><strong>5. Governing Law.</strong> This Agreement shall be governed by the laws of the State of Delaware.</p>
+                          <p style={{ marginTop: "16px", color: "var(--text-muted)", fontSize: "0.82rem" }}>Scroll to the bottom to enable signing.</p>
+                        </div>
+                        {!ndaScrolled && <p className={styles.signatureHint}>{"\u2193"} Scroll to read the full agreement</p>}
+                        <button
+                          className={styles.completeBtn}
+                          disabled={!ndaScrolled}
+                          onClick={() => handleCompleteTask(task.id)}
+                          style={{ opacity: ndaScrolled ? 1 : 0.4 }}
+                        >
+                          {"\u270d\ufe0f"} I Agree &amp; Sign
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Swag picker */}
+                    {task.type === "swag" && (
+                      <div className={styles.miniForm}>
+                        <div className={styles.miniFormHeader}>{"\uD83D\uDC55"} Pick Your Welcome Kit</div>
+                        <div style={{ marginBottom: "10px" }}>
+                          <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "6px", fontWeight: 600 }}>Choose your laptop</div>
+                          <div className={styles.swagOptions}>
+                            {["MacBook Pro 14\"", "MacBook Pro 16\"", "Dell XPS 15"].map((opt) => (
+                              <button
+                                key={opt}
+                                className={`${styles.swagOption} ${swagSelections.laptop === opt ? styles.swagSelected : ""}`}
+                                onClick={() => setSwagSelections((s) => ({ ...s, laptop: opt }))}
+                              >
+                                {"\uD83D\uDCBB"} {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ marginBottom: "10px" }}>
+                          <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "6px", fontWeight: 600 }}>Hoodie size</div>
+                          <div className={styles.swagOptions}>
+                            {["XS", "S", "M", "L", "XL", "2XL"].map((s) => (
+                              <button
+                                key={s}
+                                className={`${styles.swagOption} ${swagSelections.size === s ? styles.swagSelected : ""}`}
+                                onClick={() => setSwagSelections((prev) => ({ ...prev, size: s }))}
+                              >
+                                {s}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <button
+                          className={styles.completeBtn}
+                          disabled={!swagSelections.laptop || !swagSelections.size}
+                          onClick={() => handleCompleteTask(task.id)}
+                          style={{ opacity: swagSelections.laptop && swagSelections.size ? 1 : 0.4 }}
+                        >
+                          Confirm Selection
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Profile picture */}
+                    {task.type === "profile" && (
+                      <div className={styles.miniForm}>
+                        <div className={styles.miniFormHeader}>{"\uD83D\uDCF8"} Upload Profile Photo</div>
+                        <div className={styles.uploadArea}>
+                          <div className={styles.uploadPlaceholder}><span>{profileInitials || employeeName.charAt(0)}</span></div>
+                          <div>
+                            <p style={{ color: "var(--text-muted)", fontSize: "0.88rem" }}>Your initials are your placeholder. Enter custom initials or upload a photo.</p>
+                            <input
+                              className={styles.profileInitialInput}
+                              maxLength={2}
+                              value={profileInitials}
+                              onChange={(e) => setProfileInitials(e.target.value.toUpperCase())}
+                              placeholder="Initials"
+                              style={{ marginTop: "8px", background: "rgba(0,0,0,0.3)", border: "1px solid var(--panel-border)", borderRadius: "8px", padding: "6px 10px", color: "var(--text-main)", fontFamily: "inherit", width: "80px" }}
+                            />
+                          </div>
+                        </div>
+                        <button className={styles.completeBtn} onClick={() => handleCompleteTask(task.id)} style={{ marginTop: "8px" }}>
+                          Save Profile
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Training */}
+                    {task.type === "training" && (
+                      <div className={styles.miniForm}>
+                        <div className={styles.miniFormHeader}>{"\uD83C\uDF93"} Security Awareness Training</div>
+                        <div className={styles.uploadArea} style={{ cursor: "pointer" }}>
+                          <span style={{ fontSize: "2.5rem" }}>{"\u25b6\ufe0f"}</span>
+                          <div>
+                            <div style={{ fontWeight: 600 }}>Getting Started at Springboard.io</div>
+                            <div style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>12 min · HR Team</div>
+                          </div>
+                        </div>
+                        <button className={styles.completeBtn} onClick={() => handleCompleteTask(task.id)} style={{ marginTop: "12px" }}>
+                          {"\u2705"} Mark as Watched
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Generic fallback */}
+                    {!["document", "swag", "profile", "training"].includes(task.type) && (
+                      <div className={styles.miniForm}>
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                          Use the chat assistant to complete this task, then mark it done.
+                        </p>
+                        <button className={styles.completeBtn} onClick={() => handleCompleteTask(task.id)}>Mark Complete</button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Completion Banner */}
