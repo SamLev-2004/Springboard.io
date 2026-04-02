@@ -6,14 +6,14 @@ Springboard.io bridges the chaotic gap between a signed offer and a productive D
 
 ### The manual way vs. Springboard
 
-| ❌ BEFORE | ✅ AFTER |
+| ❌ BEFORE (The manual way) | ✅ AFTER (With Springboard.io) |
 | :--- | :--- |
-| • HR sends 6 emails to coordinate day 1 | • HR creates profile in **30 seconds** |
-| • New hire waits 2-4 hrs for Slack answers | • New hire gets answers in **~3 seconds** |
-| • Manager interrupted 8x per week | • Manager gets 2 Slack nudges/week only |
-| • Same questions answered 200+ times | • AI answers every repeat question instantly |
-| • Zero visibility — HR flies blind | • Live dashboard — completion, flags, pulse |
-| • No audit trail for compliance | • Every step timestamped for audit |
+| • HR sends 6 emails to coordinate day 1 | • Manager generates **AI onboarding plan in seconds** |
+| • New hire waits 2-4 hrs for Slack answers | • **RAG chatbot** answers questions instantly |
+| • Manager interrupted 8x per week | • **Interactive action items** (NDA, Swag) handled inline |
+| • Same questions answered 200+ times | • Routine questions are **deflected automatically** |
+| • Zero visibility — HR flies blind | • **Pulse check-ins** give active sentiment reads |
+| • No audit trail for compliance | • Sensitive topics automatically **flagged for HR** |
 
 > **Hackathon Judges:** The fastest way to see this in action is the [live demo](#live-demo) link below. No setup required!
 
