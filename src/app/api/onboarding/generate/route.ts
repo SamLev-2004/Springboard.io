@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     // Call the model via Vercel AI SDK (We use gemini-1.5-pro here, fallback to flash if needed)
     // Make sure GOOGLE_GENERATIVE_AI_API_KEY is defined in .env.local
     const { object } = await generateObject({
-      model: google("gemini-2.5-pro"),
+      model: google("gemini-2.0-flash"),
       schema: OnboardingPlanSchema,
       prompt: prompt,
     });

@@ -1,14 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./manager.module.css";
 import { MOCK_PROFILES } from "@/lib/mcp/mockData";
 
 export default function ManagerDashboard() {
+  const router = useRouter();
   const [selectedId, setSelectedId] = useState(MOCK_PROFILES[0].id);
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<any>(null);
   const [employee, setEmployee] = useState<any>(null);
+  const [dispatched, setDispatched] = useState(false);
+
+  const handleDispatch = () => {
+    const payload = btoa(JSON.stringify({ plan, employee }));
+    setDispatched(true);
+    setTimeout(() => {
+      router.push(`/new-hire?plan=${encodeURIComponent(payload)}`);
+    }, 1200);
+  };
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -104,8 +115,8 @@ export default function ManagerDashboard() {
             </div>
 
             <div className={styles.hilApprove}>
-              <button className="btn" onClick={() => alert("Approved! Tasks dispatched to agents.")}>
-                Approve & Dispatch Agents 🚀
+              <button className="btn" onClick={handleDispatch} disabled={dispatched}>
+                {dispatched ? "Dispatching Agents..." : "Approve & Dispatch Agents \uD83D\uDE80"}
               </button>
             </div>
           </div>
