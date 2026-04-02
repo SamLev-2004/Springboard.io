@@ -51,6 +51,41 @@ export const COMPANY_KNOWLEDGE = [
     topic: "culture",
     keywords: ["culture", "values", "team", "vibe", "company", "mission"],
     answer: "Our core values: Ship Fast, Stay Curious, Lift Each Other. We do weekly all-hands on Fridays, monthly team outings, and quarterly hackathons. The vibe is high-energy but low-ego. Welcome to the team! 🎉"
+  },
+  {
+    topic: "vacation_policy",
+    keywords: ["vacation", "paid vacation", "accrued", "rollover", "time off policy", "pto policy"],
+    answer: "All full-time employees receive 15 days paid vacation annually, accrued at 1.25 days per month. Requests must be submitted 2 weeks in advance via the HR portal. Up to 5 unused days roll over to the following year. Source: Employee Handbook"
+  },
+  {
+    topic: "expenses",
+    keywords: ["expense", "expensify", "receipt", "reimbursement", "reimburse"],
+    answer: "All work expenses must be submitted within 30 days via Expensify. Expenses over $500 require manager pre-approval. Receipts required for amounts over $25. Software subscriptions need department head approval. Source: Employee Handbook"
+  },
+  {
+    topic: "remote_work",
+    keywords: ["remote", "work from home", "wfh", "hybrid", "in office"],
+    answer: "Employees may work remotely up to 3 days per week with manager approval. Full remote is available for remote-eligible roles (check your offer letter). Core collaboration hours are 10am-3pm in your local timezone. Source: Employee Handbook"
+  },
+  {
+    topic: "performance_reviews",
+    keywords: ["review", "performance", "promotion", "evaluation", "check-in"],
+    answer: "Performance reviews occur every 6 months (June and December). New hires receive special check-ins at 30, 60, and 90 days with their manager. Promotion decisions are made annually in December. Source: Employee Handbook"
+  },
+  {
+    topic: "laptop_setup",
+    keywords: ["laptop", "computer", "setup", "machine", "macbook", "it setup"],
+    answer: "Your laptop will be ready on your first day. Standard setup: macOS/Windows depending on your role, with pre-installed dev tools. For issues, contact IT at it@springboard.io or through the #it-help Slack channel. Source: IT Guide"
+  },
+  {
+    topic: "git_workflow",
+    keywords: ["git", "github", "branch", "pull request", "pr", "code review", "merge"],
+    answer: "We use GitHub Enterprise with a trunk-based workflow. Create feature branches from main, open PRs with at least 1 reviewer, and squash-merge when approved. CI/CD runs automatically on every PR. Source: Engineering Onboarding"
+  },
+  {
+    topic: "code_of_conduct",
+    keywords: ["conduct", "ethics", "harassment", "discrimination", "respect"],
+    answer: "Treat all colleagues with respect regardless of role or seniority. Discrimination or harassment of any kind results in immediate review. Concerns can be raised with your manager or confidentially at ethics@springboard.io. Source: Employee Handbook"
   }
 ];
 

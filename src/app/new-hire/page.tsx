@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport } from "ai";
@@ -14,12 +14,28 @@ type AgenticTask = {
   type: "email" | "permission" | "calendar" | "document";
 };
 
+type NewHireTask = {
+  id: string;
+  title: string;
+  description: string;
+  status: "pending" | "completed";
+  type: "document" | "swag" | "profile" | "training" | string;
+};
+
+type CustomDoc = {
+  title: string;
+  type: string;
+  url?: string;
+};
+
 type OnboardingPlan = {
   welcomeMessage: string;
   buddyName: string;
   buddyReason: string;
   firstWeekGoals: string[];
   agenticTasks: AgenticTask[];
+  newHireTasks?: NewHireTask[];
+  customDocs?: CustomDoc[];
 };
 
 const MOCK_PLAN: OnboardingPlan = {
@@ -41,26 +57,37 @@ const MOCK_PLAN: OnboardingPlan = {
     { id: "task_4", title: "Share Onboarding Documents", description: "Send Engineering Handbook and Git Workflow Guide links", status: "pending", type: "document" },
     { id: "task_5", title: "Set Up AWS Dev Sandbox", description: "Provision IAM credentials for AWS development environment", status: "pending", type: "permission" },
   ],
+  newHireTasks: [
+    { id: "nh_1", title: "Sign Non-Disclosure Agreement", description: "Review and sign the Springboard standard NDA.", status: "pending", type: "document" },
+    { id: "nh_2", title: "Pick Your Laptop & Swag", description: "Choose between a Mac or PC, and select your hoodie size.", status: "pending", type: "swag" },
+    { id: "nh_3", title: "Upload Profile Picture", description: "Add a photo to your Springboard directory profile.", status: "pending", type: "profile" },
+  ],
+  customDocs: [
+    { title: "Springboard Employee Handbook", type: "pdf", url: "#" },
+    { title: "2026 Engineering Roadmap", type: "link", url: "#" },
+    { title: "Benefits Overview", type: "pdf", url: "#" },
+  ],
 };
 
-const TASK_ICONS: Record<AgenticTask["type"], string> = {
-  email: "\u2709\uFE0F",
-  permission: "\uD83D\uDD10",
-  calendar: "\uD83D\uDCC5",
-  document: "\uD83D\uDCC4",
+const TASK_ICONS: Record<string, string> = {
+  email: "✉️",
+  permission: "🔐",
+  calendar: "📅",
+  document: "📄",
+  swag: "👕",
+  profile: "📸",
+  training: "🎓"
 };
 
-const RUNNING_MESSAGES: Record<AgenticTask["type"], string[]> = {
-  email: ["Connecting to email service...", "Drafting personalized email...", "Sending email..."],
-  permission: ["Authenticating with API...", "Provisioning access credentials...", "Verifying permissions..."],
-  calendar: ["Checking calendar availability...", "Booking time slot...", "Sending calendar invite..."],
-  document: ["Locating documents...", "Generating share links...", "Dispatching document package..."],
-};
+// Keywords that trigger a flagged-question badge (ported from Greg's BoardingPass)
+const FLAGGED_KEYWORDS = [
+  "salary", "compensation", "executive", "fired", "terminate", "lawsuit",
+  "confidential", "stock options", "equity grant", "severance", "nda breach",
+];
 
-type LogEntry = { time: string; text: string };
-
-function getTimestamp(): string {
-  return new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+function isFlagged(text: string): boolean {
+  const lower = text.toLowerCase();
+  return FLAGGED_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
 function NewHireContent() {
@@ -82,7 +109,9 @@ function NewHireContent() {
             buddyName: incoming.buddyName || MOCK_PLAN.buddyName,
             buddyReason: incoming.buddyReason || MOCK_PLAN.buddyReason,
             firstWeekGoals: incoming.firstWeekGoals || MOCK_PLAN.firstWeekGoals,
-            agenticTasks: (incoming.agenticTasks || MOCK_PLAN.agenticTasks).map((t: any) => ({
+            agenticTasks: incoming.agenticTasks || MOCK_PLAN.agenticTasks,
+            customDocs: incoming.customDocs || MOCK_PLAN.customDocs,
+            newHireTasks: (incoming.newHireTasks || MOCK_PLAN.newHireTasks).map((t: any) => ({
               ...t,
               status: "pending" as const,
             })),
@@ -97,89 +126,13 @@ function NewHireContent() {
     }
   }, [searchParams]);
 
-  const [tasks, setTasks] = useState<AgenticTask[]>([]);
-  const [activityLog, setActivityLog] = useState<LogEntry[]>([]);
-  const [allDone, setAllDone] = useState(false);
-  const logEndRef = useRef<HTMLDivElement>(null);
-  const hasStartedRef = useRef(false);
+  const [tasks, setTasks] = useState<NewHireTask[]>([]);
+  const completedCount = tasks.filter((t) => t.status === "completed").length;
+  const allDone = tasks.length > 0 && completedCount === tasks.length;
 
-  // Initialize tasks from plan
   useEffect(() => {
-    setTasks(plan.agenticTasks.map((t) => ({ ...t, status: "pending" as const })));
-    setActivityLog([]);
-    setAllDone(false);
-    hasStartedRef.current = false;
-  }, [plan]);
-
-  // Agentic task execution simulation: pending → running → completed, one at a time
-  useEffect(() => {
-    if (tasks.length === 0 || hasStartedRef.current) return;
-    hasStartedRef.current = true;
-
-    const addLog = (text: string) => {
-      setActivityLog((prev) => [...prev, { time: getTimestamp(), text }]);
-    };
-
-    let cancelled = false;
-    const timers: ReturnType<typeof setTimeout>[] = [];
-
-    const runTask = (index: number) => {
-      if (cancelled || index >= tasks.length) return;
-      const task = tasks[index];
-      const msgs = RUNNING_MESSAGES[task.type];
-
-      // Set to running
-      timers.push(setTimeout(() => {
-        if (cancelled) return;
-        setTasks((prev) => prev.map((t, i) => i === index ? { ...t, status: "running" as const } : t));
-        addLog(`Agent starting: ${task.title}`);
-      }, 0));
-
-      // Show running messages
-      msgs.forEach((msg, mi) => {
-        timers.push(setTimeout(() => {
-          if (cancelled) return;
-          addLog(msg);
-        }, 800 + mi * 900));
-      });
-
-      // Complete
-      const completeDelay = 800 + msgs.length * 900 + 600;
-      timers.push(setTimeout(() => {
-        if (cancelled) return;
-        setTasks((prev) => prev.map((t, i) => i === index ? { ...t, status: "completed" as const } : t));
-        addLog(`\u2713 ${task.title} completed`);
-
-        if (index + 1 < tasks.length) {
-          timers.push(setTimeout(() => runTask(index + 1), 400));
-        } else {
-          timers.push(setTimeout(() => {
-            if (!cancelled) {
-              addLog("\uD83C\uDF89 All onboarding tasks completed!");
-              setAllDone(true);
-            }
-          }, 600));
-        }
-      }, completeDelay));
-    };
-
-    // Initial delay before first task
-    timers.push(setTimeout(() => {
-      addLog("Initializing onboarding agent pipeline...");
-      timers.push(setTimeout(() => runTask(0), 800));
-    }, 1000));
-
-    return () => {
-      cancelled = true;
-      timers.forEach(clearTimeout);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks.length]);
-
-  // Auto-scroll activity log
-  useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activityLog]);
+    setTasks(plan.newHireTasks?.map((t) => ({ ...t, status: "pending" as const })) ?? []);
+  }, [plan.newHireTasks]);
 
   // Streaming AI chat
   const { messages, sendMessage, status } = useChat({
@@ -212,7 +165,24 @@ function NewHireContent() {
     sendMessage({ text });
   };
 
-  const completedCount = tasks.filter((t) => t.status === "completed").length;
+  const handleStartTask = (taskId: string, title: string) => {
+    setChatOpen(true);
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: "completed" } : t));
+    sendMessage({ text: `I am ready to complete my task: ${title}. Can you help me?` });
+  };
+
+  // Pulse check-in state (ported from Greg's BoardingPass)
+  const [showPulse, setShowPulse] = useState(false);
+  const [pulseSubmitted, setPulseSubmitted] = useState(false);
+  const [pulseAnswers, setPulseAnswers] = useState({ q1: "", q2: "", q3: "" });
+
+  const handlePulseSubmit = useCallback(() => {
+    setPulseSubmitted(true);
+    setTimeout(() => setShowPulse(false), 1500);
+  }, []);
+
+  // Track flagged questions count
+  const flaggedCount = messages.filter((m) => (m.role as string) === "user" && isFlagged(m.content ?? "")).length;
 
   return (
     <div className={styles.page}>
@@ -252,12 +222,58 @@ function NewHireContent() {
         </div>
       </section>
 
-      {/* Agentic Tasks */}
+            {/* Provisioned by AI Agents */}
+      {plan.agenticTasks && plan.agenticTasks.length > 0 && (
+        <section className="glass-panel">
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionIcon}>{"✨"}</span>
+            <h2>Provisioned Workspace</h2>
+          </div>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "16px" }}>
+            The AI Manager has completed these background setups for you:
+          </p>
+          <div className={styles.agenticArtifacts}>
+            {plan.agenticTasks.map((task) => (
+              <div key={task.id} className={styles.artifactCard}>
+                <div className={styles.artifactIcon}>{TASK_ICONS[task.type] || "🔹"}</div>
+                <div className={styles.artifactBody}>
+                  <div className={styles.artifactTitle}>{task.title}</div>
+                  {task.type === "email" && <div className={styles.artifactMock}><strong>From:</strong> IT@springboard.io<br/><strong>Subject:</strong> Welcome!</div>}
+                  {task.type === "calendar" && <div className={styles.artifactMock}><strong>Date:</strong> April 10, 10:00 AM<br/><strong>Invitees:</strong> You, Manager</div>}
+                  {task.type === "permission" && <div className={styles.artifactMock}><span className={styles.grantedBadge}>Access Granted</span></div>}
+                  {task.type === "document" && <div className={styles.artifactMock}><span style={{color: "var(--accent-secondary)"}}>Files sent to your inbox</span></div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Your Onboarding Documents */}
+      {plan.customDocs && plan.customDocs.length > 0 && (
+        <section className="glass-panel">
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionIcon}>{"📁"}</span>
+            <h2>Your Documents</h2>
+          </div>
+          <div className={styles.docsGrid}>
+            {plan.customDocs.map((doc, i) => (
+              <a key={i} href={doc.url || "#"} className={styles.docCard}>
+                <span className={styles.docIcon}>{doc.type === "pdf" ? "📄" : "🔗"}</span>
+                <span className={styles.docTitle}>{doc.title}</span>
+                <span className={styles.docArrow}>&rarr;</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Interactive Action Checklist */}
       <section className="glass-panel">
         <div className={styles.sectionHeader}>
-          <span className={styles.sectionIcon}>{"\u26A1"}</span>
+          <span className={styles.sectionIcon}>{"📋"}</span>
           <h2>
-            AI Agent Tasks ({completedCount}/{tasks.length})
+            Your Action Items ({completedCount}/{tasks.length})
           </h2>
         </div>
         <div className={styles.taskList}>
@@ -266,71 +282,91 @@ function NewHireContent() {
               key={task.id}
               className={`${styles.taskRow} ${
                 task.status === "completed" ? styles.completed : ""
-              } ${task.status === "running" ? styles.running : ""} ${
-                task.status === "failed" ? styles.failed : ""
               }`}
             >
               <div className={styles.taskIcon}>
-                {TASK_ICONS[task.type]}
+                {TASK_ICONS[task.type] || "🔹"}
               </div>
               <div className={styles.taskBody}>
                 <div className={styles.taskTitle}>{task.title}</div>
                 <div className={styles.taskDesc}>{task.description}</div>
               </div>
               <div className={styles.taskStatus}>
-                {task.status === "pending" && (
-                  <span className={`${styles.statusText} ${styles.pending}`}>
-                    Queued
-                  </span>
-                )}
-                {task.status === "running" && (
+                {task.status === "pending" ? (
+                  <button 
+                    className={styles.chatSend} 
+                    style={{ padding: "0.25rem 0.75rem", fontSize: "0.85rem", margin: 0 }}
+                    onClick={() => handleStartTask(task.id, task.title)}
+                  >
+                    Start
+                  </button>
+                ) : (
                   <>
-                    <div className={styles.spinner} />
-                    <span className={`${styles.statusText} ${styles.runningText}`}>
-                      Running...
-                    </span>
-                  </>
-                )}
-                {task.status === "completed" && (
-                  <>
-                    <div className={styles.checkmark}>{"\u2713"}</div>
+                    <div className={styles.checkmark}>{"✓"}</div>
                     <span className={`${styles.statusText} ${styles.completed}`}>
                       Done
                     </span>
                   </>
-                )}
-                {task.status === "failed" && (
-                  <span className={`${styles.statusText} ${styles.failed}`}>
-                    Failed
-                  </span>
                 )}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Activity Log */}
-        {activityLog.length > 0 && (
-          <div className={styles.activityLog}>
-            <div className={styles.logHeader}>Agent Activity Log</div>
-            <div className={styles.logScroll}>
-              {activityLog.map((entry, i) => (
-                <div key={i} className={styles.logEntry}>
-                  <span className={styles.logTime}>[{entry.time}]</span> {entry.text}
-                </div>
-              ))}
-              <div ref={logEndRef} />
-            </div>
-          </div>
-        )}
-
         {/* Completion Banner */}
-        {allDone && (
+        {allDone && tasks.length > 0 && (
           <div className={styles.completionBanner}>
-            <span>{"\uD83C\uDF89"}</span> All systems ready! Your onboarding is complete, {employeeName}.
+            <span>{"\ud83c\udf89"}</span> Amazing job! You&apos;ve completed all your onboarding tasks, {employeeName}.
           </div>
         )}
       </section>
+
+      {/* Pulse Check-in Prompt (ported from Greg's BoardingPass) */}
+      {!showPulse && !pulseSubmitted && (
+        <section className="glass-panel" style={{ textAlign: "center" }}>
+          <div className={styles.sectionHeader} style={{ justifyContent: "center" }}>
+            <span className={styles.sectionIcon}>{"\ud83d\udcca"}</span>
+            <h2>Quick Check-in</h2>
+          </div>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", margin: "8px 0 16px" }}>
+            How are you feeling about your onboarding so far? Your feedback helps us improve.
+          </p>
+          <button className={styles.pulseBtn} onClick={() => setShowPulse(true)}>
+            Start Check-in
+          </button>
+        </section>
+      )}
+
+      {pulseSubmitted && (
+        <section className="glass-panel" style={{ textAlign: "center" }}>
+          <div className={styles.completionBanner} style={{ margin: 0 }}>
+            <span>{"\u2705"}</span> Thanks for your feedback, {employeeName}! Your manager will review it.
+          </div>
+        </section>
+      )}
+
+      {/* Pulse Modal Overlay */}
+      {showPulse && (
+        <div className={styles.pulseOverlay}>
+          <div className={styles.pulseModal}>
+            <h3>Quick Check-in</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "16px" }}>Required before continuing — this helps HR improve onboarding.</p>
+            <div className={styles.pulseField}>
+              <label>What&apos;s still unclear or confusing?</label>
+              <textarea value={pulseAnswers.q1} onChange={(e) => setPulseAnswers(p => ({ ...p, q1: e.target.value }))} placeholder="Be honest — this is sent to your manager." rows={2} />
+            </div>
+            <div className={styles.pulseField}>
+              <label>Who haven&apos;t you connected with yet?</label>
+              <textarea value={pulseAnswers.q2} onChange={(e) => setPulseAnswers(p => ({ ...p, q2: e.target.value }))} placeholder="e.g. your tech lead, a cross-functional partner..." rows={2} />
+            </div>
+            <div className={styles.pulseField}>
+              <label>What do you need to be more effective?</label>
+              <textarea value={pulseAnswers.q3} onChange={(e) => setPulseAnswers(p => ({ ...p, q3: e.target.value }))} placeholder="Tools, access, information, introductions..." rows={2} />
+            </div>
+            <button className={styles.pulseBtn} onClick={handlePulseSubmit} style={{ width: "100%" }}>Submit Check-in</button>
+          </div>
+        </div>
+      )}
 
       {/* Chat Toggle */}
       <button
@@ -348,16 +384,26 @@ function NewHireContent() {
             {"\uD83E\uDD16"} Onboarding Assistant
           </div>
           <div className={styles.chatMessages}>
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`${styles.chatBubble} ${
-                  (msg.role as string) === "user" ? styles.user : styles.bot
-                }`}
-              >
-                {msg.parts?.filter((p: any) => p.type === "text").map((p: any, i: number) => <span key={i}>{p.text}</span>) ?? msg.content}
+            {messages.map((msg) => {
+              const text = msg.parts?.filter((p: any) => p.type === "text").map((p: any) => p.text).join("") ?? msg.content ?? "";
+              const flagged = (msg.role as string) === "user" && isFlagged(text);
+              return (
+                <div
+                  key={msg.id}
+                  className={`${styles.chatBubble} ${
+                    (msg.role as string) === "user" ? styles.user : styles.bot
+                  }`}
+                >
+                  {text}
+                  {flagged && <span className={styles.flagBadge} title="This question was flagged for HR review">{"\u26a0\ufe0f"} Flagged</span>}
+                </div>
+              );
+            })}
+            {flaggedCount > 0 && (
+              <div className={styles.flagNotice}>
+                {"\ud83d\udea9"} {flaggedCount} question{flaggedCount > 1 ? "s" : ""} flagged for HR review
               </div>
-            ))}
+            )}
             {status === "submitted" && (
               <div className={`${styles.chatBubble} ${styles.bot}`}>
                 <div className={styles.typingDots}>

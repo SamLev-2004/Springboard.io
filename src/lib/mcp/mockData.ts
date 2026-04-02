@@ -57,6 +57,31 @@ export const ROLE_TEMPLATES: RoleTemplate[] = [
   }
 ];
 
+export interface HRNotes {
+  applicationDate: string;
+  resumeHighlights: string;
+  interviewNotes: string;
+  offerDetails: string;
+  specialRequirements: string;
+}
+
+export const MOCK_HR_NOTES: Record<string, HRNotes> = {
+  emp_101: {
+    applicationDate: "2026-03-15",
+    resumeHighlights: "5 years React/Next.js, led design system at previous company, strong open-source contributions",
+    interviewNotes: "Excellent system design skills. Collaborative in pair programming exercise. Strong culture fit.",
+    offerDetails: "Senior Frontend Engineer, $165K base + equity, remote US",
+    specialRequirements: "Ergonomic keyboard setup requested",
+  },
+  emp_102: {
+    applicationDate: "2026-03-20",
+    resumeHighlights: "7 years B2B SaaS marketing, grew pipeline 3x at previous company, HubSpot certified",
+    interviewNotes: "Creative thinker with strong analytical backing. Great presentation in case study round.",
+    offerDetails: "Product Marketing Manager, $140K base + equity, New York Hub",
+    specialRequirements: "Starting on a Tuesday due to relocation",
+  },
+};
+
 export const MOCK_BUDDIES = [
   { name: "Jordan Lee", role: "Lead Engineer", personalityType: "Analytical", email: "jlee@springboard.io" },
   { name: "Taylor Swift", role: "Marketing Director", personalityType: "Creative", email: "tswift@springboard.io" },

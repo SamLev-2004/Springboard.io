@@ -11,7 +11,14 @@ export const OnboardingPlanSchema = z.object({
     description: z.string(),
     status: z.enum(["pending", "completed", "failed"]),
     type: z.enum(["email", "permission", "calendar", "document"])
-  })).describe("Actionable tasks the AI agent will execute (e.g. 'Grant Vercel access', 'Draft Intro Email')")
+  })).describe("Actionable tasks the AI agent will execute (e.g. 'Grant Vercel access', 'Draft Intro Email')"),
+  newHireTasks: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    status: z.enum(["pending", "completed"]),
+    type: z.enum(["document", "swag", "profile", "training"])
+  })).describe("Actionable setup tasks for the new hire to complete in their portal (e.g., 'Sign NDA', 'Pick laptop')").optional()
 });
 
 export const getOnboardingPrompt = (
@@ -40,4 +47,5 @@ Your task is to generate a personalized onboarding plan and agentic tasks.
 2. Draft a vibrant welcome message.
 3. List 3 key first week goals.
 4. Generate the Agentic Tasks needed to get them set up. Create ONE permission task per software access they need, ONE document task for sharing the key docs, and ONE calendar task to schedule a 1:1 with their assigned buddy. Make sure the statuses are all "pending".
+5. Generate New Hire Tasks for the employee to complete. Include standard things like picking swag, signing their NDA, or completing profile setup. Make sure statuses are "pending".
 `;
