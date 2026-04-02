@@ -20,7 +20,7 @@ ${ragContext ? `IMPORTANT — Use this verified company information to answer th
 Remember: you're talking to a brand new employee who might be nervous. Be encouraging!`;
 
   const result = streamText({
-    model: google("gemini-1.5-flash"),
+    model: google("gemini-2.5-flash"),
     system: systemPrompt,
     messages,
   });
