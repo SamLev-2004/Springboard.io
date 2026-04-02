@@ -19,6 +19,18 @@ ${ragContext ? `IMPORTANT — Use this verified company information to answer th
 
 Remember: you're talking to a brand new employee who might be nervous. Be encouraging!`;
 
+  // Local preview fallback: keep chat usable without external API configuration.
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    const fallback = ragContext
+      ? `${ragContext} If you want, I can also help you draft a quick message to your onboarding buddy about this.`
+      : "I can still help with onboarding basics in local preview mode. For company-specific answers, ask your onboarding buddy or HR while the AI key is not configured.";
+
+    return new Response(fallback, {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
   const result = streamText({
     model: google("gemini-2.5-flash"),
     system: systemPrompt,
