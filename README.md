@@ -101,4 +101,4 @@ boardingpass/                    # Greg's standalone Python/FastAPI demo
 
 ## Team
 
-Built at **Boundary Hackathon 2026** by Sam Levkovsky & Greg Ngo.
+Built at **Boundary Hackathon 2026** by Sam Levkovsky, Greg Ngo and Galat Bum
